@@ -1,0 +1,13 @@
+# ninja log v5
+932	1276	0	src/renderer/platform/tizen/basic_file_loader_tizen.o	478ac0e12742f0c6
+458	3472	0	src/gles_sample.o	f417fd75a2cc8a5a
+23	264	0	src/renderer/platform/tizen/basic_file_loader_tizen.o	4fe07e060db1a921
+46	284	0	src/renderer/platform/win/basic_file_loader_win.o	38e26c1d589ac878
+43	1786	0	src/renderer/basic_camera.o	282794e01a3eba65
+284	3027	0	src/gles_sample.o	7252c60b89a96250
+1	18	0	clean_sa	75b7c2305ffc90e6
+18	35	0	clean	d59b6dac04fa9b5d
+13	631	0	src/renderer/platform/win/basic_file_loader_win.o	38e26c1d589ac878
+22	635	0	src/renderer/platform/tizen/basic_file_loader_tizen.o	4fe07e060db1a921
+34	1002	0	src/renderer/basic_camera.o	282794e01a3eba65
+37	3343	0	src/gles_sample.o	7252c60b89a96250

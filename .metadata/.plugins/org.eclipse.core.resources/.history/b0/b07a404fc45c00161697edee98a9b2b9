@@ -1,0 +1,85 @@
+#include "sample/normal_mapping_view.h"
+
+#include "basic/basic_file_loader.h"
+
+using namespace std;
+
+void NormalMappingView::OnInit() {
+	string vs = FileLoader::GetInstance()->ReadTxtFile("shader/view_nor/nor.vs");
+			string fs = FileLoader::GetInstance()->ReadTxtFile("shader/view_nor/nor.fs");
+			mViewRenderer->SetProgram(vs, fs);
+
+
+
+			string ball = FileLoader::GetInstance()->ReadTxtFile("obj3d/sphere3");
+			string obstacle1 = FileLoader::GetInstance()->ReadTxtFile("obj3d/sphere3");
+			string obstacle2 = FileLoader::GetInstance()->ReadTxtFile("obj3d/sphere3");
+			string goal = FileLoader::GetInstance()->ReadTxtFile("obj3d/sphere3");
+			string obstacle5 = FileLoader::GetInstance()->ReadTxtFile("obj3d/sphere3");
+			string obstacle6 = FileLoader::GetInstance()->ReadTxtFile("obj3d/sphere3");
+			string obstacle7 = FileLoader::GetInstance()->ReadTxtFile("obj3d/sphere3");
+			string obstacle8 = FileLoader::GetInstance()->ReadTxtFile("obj3d/sphere3");
+			string obstacle9 = FileLoader::GetInstance()->ReadTxtFile("obj3d/sphere3");
+			string obstacle10 = FileLoader::GetInstance()->ReadTxtFile("obj3d/sphere3");
+
+
+			TexData ball_tex, ball_normal_tex;
+			TexData obstacle1_tex, obstacle1_normal_tex;
+			TexData obstacle2_tex, obstacle2_normal_tex;
+			TexData goal_tex, goal_normal_tex;
+			TexData obstacle5_tex, obstacle5_normal_tex;
+			TexData obstacle6_tex, obstacle6_normal_tex;
+			TexData obstacle7_tex, obstacle7_normal_tex;
+			TexData obstacle8_tex, obstacle8_normal_tex;
+			TexData obstacle9_tex, obstacle9_normal_tex;
+			TexData obstacle10_tex, obstacle10_normal_tex;
+
+
+			FileLoader::GetInstance()->ReadTexture("tex/soccer.jpg", ball_tex);
+			FileLoader::GetInstance()->ReadTexture("tex/photosculpt-mixedstones-diffuse.jpg", obstacle1_tex);
+			FileLoader::GetInstance()->ReadTexture("tex/photosculpt-mixedstones-diffuse.jpg", obstacle2_tex);
+			FileLoader::GetInstance()->ReadTexture("tex/black.jpg", goal_tex);
+			FileLoader::GetInstance()->ReadTexture("tex/photosculpt-mixedstones-diffuse.jpg", obstacle5_tex);
+			FileLoader::GetInstance()->ReadTexture("tex/photosculpt-mixedstones-diffuse.jpg", obstacle6_tex);
+			FileLoader::GetInstance()->ReadTexture("tex/photosculpt-mixedstones-diffuse.jpg", obstacle7_tex);
+			FileLoader::GetInstance()->ReadTexture("tex/photosculpt-mixedstones-diffuse.jpg", obstacle8_tex);
+			FileLoader::GetInstance()->ReadTexture("tex/photosculpt-mixedstones-diffuse.jpg", obstacle9_tex);
+			FileLoader::GetInstance()->ReadTexture("tex/photosculpt-pebbles-diffuse.jpg", obstacle10_tex);
+
+
+
+
+
+
+			FileLoader::GetInstance()->ReadTexture("tex/plain.jpg", ball_normal_tex);
+			FileLoader::GetInstance()->ReadTexture("tex/photosculpt-mixedstones-normal.jpg", obstacle1_normal_tex);
+			FileLoader::GetInstance()->ReadTexture("tex/photosculpt-mixedstones-normal.jpg", obstacle2_normal_tex);
+			FileLoader::GetInstance()->ReadTexture("tex/plain.jpg", goal_normal_tex);
+			FileLoader::GetInstance()->ReadTexture("tex/photosculpt-mixedstones-diffuse.jpg", obstacle5_normal_tex);
+			FileLoader::GetInstance()->ReadTexture("tex/photosculpt-mixedstones-diffuse.jpg", obstacle6_normal_tex);
+			FileLoader::GetInstance()->ReadTexture("tex/photosculpt-mixedstones-diffuse.jpg", obstacle7_normal_tex);
+			FileLoader::GetInstance()->ReadTexture("tex/photosculpt-mixedstones-diffuse.jpg", obstacle8_normal_tex);
+			FileLoader::GetInstance()->ReadTexture("tex/photosculpt-mixedstones-diffuse.jpg", obstacle9_normal_tex);
+			FileLoader::GetInstance()->ReadTexture("tex/photosculpt-pebbles-normal.jpg", obstacle10_normal_tex);
+
+			float scale = 20.0f;
+			mViewRenderer->SetNewModel(ball, obstacle1, obstacle2, goal,obstacle5,obstacle6,obstacle7,obstacle8, obstacle9,obstacle10,scale);
+			mViewRenderer->SetTexture(TEXDATA_GENERAL, &ball_tex, &obstacle1_tex,
+					&obstacle2_tex, &goal_tex,&obstacle5_tex,&obstacle6_tex,&obstacle7_tex,
+					&obstacle8_tex,&obstacle9_tex,&obstacle10_tex);
+			mViewRenderer->SetTexture(TEXDATA_NORMAL_MAP, &ball_normal_tex,
+					&obstacle1_normal_tex, &obstacle2_normal_tex, &goal_normal_tex
+					,&obstacle5_normal_tex,&obstacle6_normal_tex,&obstacle7_normal_tex,&obstacle8_normal_tex,&obstacle9_normal_tex,
+					&obstacle10_normal_tex);
+
+
+
+			mViewRenderer->Initialize();
+			glClearColor(0.5f, 0.5f, 0.1f, 0.0f);
+			mViewRenderer->GetCamera()->SetEye(0, 0, 1000);
+			mViewRenderer->GetCamera()->SetAt(0, 0, 0);
+}
+void NormalMappingView::OnStep() {
+	mViewRenderer->RenderFrame();
+}
+

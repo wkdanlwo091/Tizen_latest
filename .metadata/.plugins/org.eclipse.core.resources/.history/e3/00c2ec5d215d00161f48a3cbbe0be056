@@ -1,0 +1,1183 @@
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <algorithm>
+#include "sample/launcher_interface.h"
+#include "sample/sample_view.h"
+#include <stdlib.h>     /* srand, rand */
+#include <time.h>       /* time */
+
+#include "gles_sample.h"
+#include "basic/basic_renderer.h"
+#define MY_PI 3.14159
+
+static bool gameWin = false;
+static float velocity_x = 0;
+static float velocity_y = 0;
+static float velocity_z = 0;
+static float position_x = 300;
+static float position_y = 500;
+static float position_z = 0;
+
+typedef struct Object_Position{
+	float x;
+	float y;
+	float z;
+
+}Object_Position;
+
+static Object_Position Object_Positions[10];
+
+Evas_Object *popup, *parent;
+
+using namespace std;
+using namespace glm;
+BasicRenderer::BasicRenderer(){
+	mWidth = 0, mHeight = 0, mDeltaTime = 0, mTimer = NULL, mCamera = NULL, mShader =
+				NULL, mIsAutoRotateEye = true, mIsFill = true, mIsTouchOn = false, mTouchPoint =
+				glm::vec3(0), mVboVertices = 0, mVboIndices = 0, mVboTangents = 0, mVboInstTransforms =
+				0, mHasTexture = false, mHasCubemap = false, mHasNorMap = false, mHasHeightmap =
+				false, mTexId = 0, mTexCubeId = 0, mTexNorId = 0, mTexHeightId = 0, mInstCount =
+				1;
+	POPUP = NULL;
+	srand (time(NULL));
+
+	mTimer = new BasicTimer();
+	mCamera = new BasicCamera();
+	mShader = new BasicShader();
+
+	Object_Positions[1].x = 200;
+	Object_Positions[1].y = 250;
+	Object_Positions[1].z = 0;
+	Object_Positions[2].x = -200;
+	Object_Positions[2].y = -250;
+	Object_Positions[2].z = 0;
+	Object_Positions[3].x = 300;
+	Object_Positions[3].y = 500;
+	Object_Positions[3].z = 0;
+
+	for (int i = 0; i < 10; i++) {
+			Mines[i].mTimer = new BasicTimer();
+			Mines[i].mCamera = new BasicCamera();
+			Mines[i].mShader = new BasicShader();
+			Mines[i].mWidth = 0;
+			Mines[i].mHeight = 0;
+			Mines[i].mDeltaTime = 0;
+			Mines[i].mIsAutoRotateEye = true;
+			Mines[i].mIsFill = true;
+			Mines[i].mIsTouchOn = false;
+			Mines[i].mTouchPoint = glm::vec3(0);
+			Mines[i].mVboVertices = 0;
+			Mines[i].mVboIndices = 0;
+			Mines[i].mVboTangents = 0;
+			Mines[i].mVboInstTransforms = 0;
+			Mines[i].mHasTexture = false;
+			Mines[i].mHasCubemap = false;
+			Mines[i].mHasNorMap = false;
+			Mines[i].mHasHeightmap = false;
+			Mines[i].mTexId = 0;
+			Mines[i].mTexCubeId = 0;
+			Mines[i].mTexNorId = 0;
+			Mines[i].mTexHeightId = 0;
+			Mines[i].mInstCount = 1;
+			Mines[i].my_z = 0;
+		}
+}
+
+BasicRenderer::~BasicRenderer()
+{
+	delete mTimer;
+	delete mShader;
+	delete mCamera;
+
+		for (int i = 0; i < 10; i++) {
+			delete Mines[i].mTimer;
+			delete Mines[i].mCamera;
+			delete Mines[i].mShader;
+
+
+		}
+
+}
+
+// Interface functions
+/// Sets vertex shader and fragment shader for rendering
+bool BasicRenderer::SetProgram(const std::string& vertexSource, const std::string& fragmentSource) const
+{
+	for (int i = 0; i < 10; i++) {
+		Mines[i].mShader->CreateProgram(vertexSource, fragmentSource);
+		if (!Mines[i].mShader->GetProgram()) {
+			LOGE("Could not create program.\n");
+			return false;
+		}
+
+		Mines[i].mShader->Use();
+		LOGI("minjae_setprogram");
+
+	}
+
+	return true;
+}
+
+bool BasicRenderer::SetProgram(const char* vertexSource, const char* fragmentSource) const
+{
+	for (int i = 0; i < 10; i++) {
+		Mines[i].mShader->CreateProgram(vertexSource, fragmentSource);
+		if (!Mines[i].mShader->GetProgram()) {
+			LOGE("Could not create program.\n");
+			return false;
+		}
+		Mines[i].mShader->Use();
+	}
+	return true;
+}
+
+/****************************
+ **** Interface functions ***
+ ****************************/
+void BasicRenderer::SetNewModel(const std::string& objSource,const std::string& objSource2, const std::string& objSource3,
+		const std::string& objSource4, const std::string& objSource5,const std::string& objSource6,
+		const std::string& objSource7,const std::string& objSource8,const std::string& objSource9,
+		const std::string& objSource10,const float& scale){
+
+	LOGI("SetNewModel");
+		char* buffer = new char[objSource.length() + 1];
+		char* buffer2 = new char[objSource2.length() + 1];
+		char* buffer3 = new char[objSource3.length() + 1];
+		char* buffer4 = new char[objSource4.length() + 1];
+		char* buffer5 = new char[objSource5.length() + 1];
+		char* buffer6 = new char[objSource6.length() + 1];
+		char* buffer7 = new char[objSource7.length() + 1];
+		char* buffer8 = new char[objSource8.length() + 1];
+		char* buffer9 = new char[objSource9.length() + 1];
+		char* buffer10 = new char[objSource10.length() + 1];
+
+		strcpy(buffer, objSource.c_str());
+		strcpy(buffer2, objSource2.c_str());
+		strcpy(buffer3, objSource3.c_str());
+		strcpy(buffer4, objSource4.c_str());
+		strcpy(buffer5, objSource5.c_str());
+		strcpy(buffer6, objSource6.c_str());
+		strcpy(buffer7, objSource7.c_str());
+		strcpy(buffer8, objSource8.c_str());
+		strcpy(buffer9, objSource9.c_str());
+		strcpy(buffer10, objSource10.c_str());
+
+		SetNewModel(buffer, buffer2, buffer3, buffer4,buffer5, buffer6, buffer7, buffer8, buffer9, buffer10, scale);
+
+		delete (buffer);
+		delete (buffer2);
+		delete (buffer3);
+		delete (buffer4);
+		delete (buffer5);
+		delete (buffer6);
+		delete (buffer7);
+		delete (buffer8);
+		delete (buffer9);
+		delete (buffer10);
+}
+
+void BasicRenderer::SetNewModel(char* objSource, char* objSource2, char* objSource3,char* objSource4,
+		char* objSource5,char* objSource6, char* objSource7, char* objSource8,
+		char* objSource9, char* objSource10,const float& scale) {
+	ImportModelScale(objSource, this, 20.0f, 0);
+	ImportModelScale(objSource2, this, 20.0f, 1);
+	ImportModelScale(objSource3, this, 20.0f, 2);
+	ImportModelScale(objSource4, this, 20.0f, 3);
+	ImportModelScale(objSource5, this, 20.0f, 4);
+	ImportModelScale(objSource6, this, 20.0f, 5);
+	ImportModelScale(objSource7, this, 20.0f, 6);
+	ImportModelScale(objSource8, this, 20.0f, 7);
+	ImportModelScale(objSource9, this, 20.0f, 8);
+	ImportModelScale(objSource10, this, 80.0f, 9);
+
+	for(int m = 0 ; m < 10 ;m++){
+	Mines[m].mHasTexture = true;
+	}
+}
+
+void BasicRenderer::SetTexture(TexData_Type type, const TexData* newTex,
+		const TexData* newTex2, const TexData* newTex3,
+		const TexData* newTex4, const TexData* newTex5,
+		const TexData* newTex6, const TexData* newTex7, const TexData* newTex8,
+		const TexData* newTex9, const TexData* newTex10) {
+	switch (type) {
+	case TEXDATA_GENERAL: // general texture
+		LOGI("Set Texture : general\n");
+		for(int m = 0; m < 10 ;m++)
+			Mines[m].mHasTexture = true;
+		CreateTexBuffer(*newTex, Mines[0].mTexId);
+		CreateTexBuffer(*newTex2, Mines[1].mTexId);
+		CreateTexBuffer(*newTex3, Mines[2].mTexId);
+		CreateTexBuffer(*newTex4, Mines[3].mTexId);
+		CreateTexBuffer(*newTex5, Mines[4].mTexId);
+		CreateTexBuffer(*newTex6, Mines[5].mTexId);
+		CreateTexBuffer(*newTex7, Mines[6].mTexId);
+		CreateTexBuffer(*newTex8, Mines[7].mTexId);
+		CreateTexBuffer(*newTex9, Mines[8].mTexId);
+		CreateTexBuffer(*newTex10, Mines[9].mTexId);
+
+		break;
+	case TEXDATA_NORMAL_MAP: // normal map
+		LOGI("Set Texture : normal map\n");
+		for(int m = 0; m < 10; m++)
+			Mines[m].mHasNorMap = true;
+		if (Mines[0].mTangentBuffer.empty() || Mines[1].mTangentBuffer.empty()
+				|| Mines[2].mTangentBuffer.empty()
+				|| Mines[3].mTangentBuffer.empty() || Mines[4].mTangentBuffer.empty()
+				|| Mines[5].mTangentBuffer.empty()
+				|| Mines[6].mTangentBuffer.empty()|| Mines[7].mTangentBuffer.empty() || Mines[8].mTangentBuffer.empty()
+				|| Mines[9].mTangentBuffer.empty()
+				)
+			ComputeTangent();
+		CreateTexBuffer(*newTex, Mines[0].mTexNorId);
+		CreateTexBuffer(*newTex2, Mines[1].mTexNorId);
+		CreateTexBuffer(*newTex3, Mines[2].mTexNorId);
+		CreateTexBuffer(*newTex4, Mines[3].mTexNorId);
+		CreateTexBuffer(*newTex5, Mines[4].mTexNorId);
+		CreateTexBuffer(*newTex6, Mines[5].mTexNorId);
+		CreateTexBuffer(*newTex7, Mines[6].mTexNorId);
+		CreateTexBuffer(*newTex8, Mines[7].mTexNorId);
+		CreateTexBuffer(*newTex9, Mines[8].mTexNorId);
+		CreateTexBuffer(*newTex10, Mines[9].mTexNorId);
+
+		break;
+	default:
+		break;
+	}
+}
+bool BasicRenderer::Initialize()
+{
+	LogInfo();CountTickInit();CreateVbo();SetState();return true;
+}
+
+void BasicRenderer::SetViewPort(int w, int h)
+{
+	LOGI("SetViewPort(%d, %d)\n", w, h);
+	Mines[0].mWidth = w;
+	Mines[0].mHeight = h;
+	glViewport(0, 0, w, h);
+	check_gl_error("glViewport");
+
+	mCamera->ComputePerspective(60.0f, w, h);
+}
+void BasicRenderer::RenderFrame(){
+	/*static int j =0;
+	if(j <120){
+		j++;
+		mCamera->MoveForward(10);
+	}*/
+	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);check_gl_error("glClear");
+	for (int i = 0; i < 10; i++) {
+		////게임에서 승리하면 이 부분에서 초기화 시키고 다시 실행
+
+		if(i != 9)
+		{
+			Mines[i].mShader->Use();
+			PassUniform(i);
+			SetAttrib(i);
+			Draw(i);
+		}
+		else{
+			if(gameWin == true){
+							Mines[i].mShader->Use();
+							PassUniform(i);
+							SetAttrib(i);
+							Draw(i);
+							sleep(10);
+							gameWin == false;
+			}
+
+		}
+
+	}
+}
+void BasicRenderer::SetAttrib(int i) const {
+	glBindBuffer(GL_ARRAY_BUFFER, Mines[i].mVboVertices);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, Mines[i].mVboIndices);
+	int stride = sizeof(VertexStruct); // stride: sizeof(float) * number of components
+	int offset = 0;
+	glEnableVertexAttribArray(V_ATTRIB_POSITION);
+		glVertexAttribPointer(V_ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE, stride,
+				reinterpret_cast<GLvoid *>(offset));
+		check_gl_error("glVertexAttribPointer");
+		offset += sizeof(vec3);
+		glEnableVertexAttribArray(V_ATTRIB_NORMAL);
+		glVertexAttribPointer(V_ATTRIB_NORMAL, 3, GL_FLOAT, GL_FALSE, stride,
+				reinterpret_cast<GLvoid *>(offset));
+		check_gl_error("glVertexAttribPointer");
+		offset += sizeof(vec3);
+		if (Mines[i].mHasTexture || Mines[i].mHasNorMap) {
+			glEnableVertexAttribArray(V_ATTRIB_TEX);
+			glVertexAttribPointer(V_ATTRIB_TEX, 2, GL_FLOAT, GL_FALSE, stride,
+					reinterpret_cast<GLvoid *>(offset));
+			check_gl_error("glVertexAttribPointer");
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, Mines[i].mTexId);
+		}
+		if (Mines[i].mHasNorMap) {
+			// Bump mapping need to change space (world and TBN)
+			// mTangentBuffer calculated by ComputeTangent() when normal texture has set
+			glBindBuffer(GL_ARRAY_BUFFER, Mines[i].mVboTangents);
+			offset = 0;
+			stride = sizeof(vec3);
+			glEnableVertexAttribArray(V_ATTRIB_TANGENT);
+			glVertexAttribPointer(V_ATTRIB_TANGENT, 3, GL_FLOAT, GL_FALSE,
+					stride, reinterpret_cast<GLvoid *>(offset));
+			glActiveTexture(GL_TEXTURE0 + TEX_POS_NORMAL);
+			glBindTexture(GL_TEXTURE_2D, Mines[i].mTexNorId);
+		}
+}
+
+void BasicRenderer::TogglePolygonMode()
+{
+#ifdef BASIC_OPENGL
+    mIsFill = !mIsFill;
+    glPolygonMode(GL_FRONT_AND_BACK, mIsFill ? GL_FILL : GL_LINE);
+#endif
+}
+void BasicRenderer::CreateTexBuffer(const TexData& newTex, GLuint& target) const
+{
+	LOGI("BasicRenderer::CreateTexBuffer\n");
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	check_gl_error("glPixelStorei");
+	glGenTextures(1, &target);
+	check_gl_error("glGenTextures");
+
+	glBindTexture(GL_TEXTURE_2D, target);
+	check_gl_error("glBindTexture");
+
+	TexBuffer(GL_TEXTURE_2D, newTex);
+
+	glGenerateMipmap(GL_TEXTURE_2D);
+	check_gl_error("glGenerateMipmap");
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+	check_gl_error("glTexParameteri");
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	check_gl_error("glTexParameteri");
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+	check_gl_error("glTexParameteri");
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+void BasicRenderer::TexBuffer(GLenum type, const TexData& newTex) const
+{
+	LOGI("BasicRenderer::TexBuffer");
+
+	glTexImage2D(type, 0, newTex.format,
+	             newTex.width, newTex.height, 0,
+	             static_cast<GLenum>(newTex.format), GL_UNSIGNED_BYTE,
+	             static_cast<void *>(newTex.pixels));
+
+	check_gl_error("glTexImage2D");
+}
+void BasicRenderer::SetState() const
+{
+	glClearColor(1.0f, 1.0f, 1.0f, 0.0f);
+	glCullFace(GL_BACK);
+	glFrontFace(GL_CCW);
+	glEnable(GL_CULL_FACE);
+	glDepthFunc(GL_LEQUAL);
+	glDepthMask(GL_TRUE);
+	glEnable(GL_DEPTH_TEST);
+}
+void BasicRenderer::CreateVbo() {
+	for (int i = 0; i < 10; i++) {
+		LOGI("BasicRenderer::createVbo\n");
+		glGenBuffers(1, &Mines[i].mVboVertices);
+		glGenBuffers(1, &Mines[i].mVboIndices);
+		glBindBuffer(GL_ARRAY_BUFFER, Mines[i].mVboVertices);
+		check_gl_error("glcreate_error");
+		glBufferData(GL_ARRAY_BUFFER,static_cast<GLsizeiptr>(Mines[i].mVertexBuffer.size()* sizeof(VertexStruct)),
+				&(Mines[i].mVertexBuffer.at(0)), GL_STATIC_DRAW);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, Mines[i].mVboIndices);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+				static_cast<GLsizeiptr>(Mines[i].mIndexBuffer.size()
+						* sizeof(GLushort)), &(Mines[i].mIndexBuffer.at(0)),
+				GL_STATIC_DRAW);
+		LOGI("BasicRenderer::createVbo 1\n");
+		int stride = sizeof(VertexStruct); // stride: sizeof(float) * number of components
+		int offset = 0;
+			glEnableVertexAttribArray(V_ATTRIB_POSITION);
+			glVertexAttribPointer(V_ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE,
+					stride, reinterpret_cast<GLvoid *>(offset));
+			offset += sizeof(vec3);
+			glEnableVertexAttribArray(V_ATTRIB_NORMAL);
+			glVertexAttribPointer(V_ATTRIB_NORMAL, 3, GL_FLOAT, GL_FALSE,
+					stride, reinterpret_cast<GLvoid *>(offset));
+			// If renderer has texture, we should enable vertex attribute for texCoord
+			if (Mines[i].mHasTexture || Mines[i].mHasNorMap) {
+				offset += sizeof(vec3);
+				glEnableVertexAttribArray(V_ATTRIB_TEX);
+				glVertexAttribPointer(V_ATTRIB_TEX, 2, GL_FLOAT, GL_FALSE,
+						stride, reinterpret_cast<GLvoid *>(offset));
+
+				glActiveTexture(GL_TEXTURE0);
+				glBindTexture(GL_TEXTURE_2D, Mines[i].mTexId);
+			}
+			LOGI("BasicRenderer::createVbo 2\n");
+			if (Mines[i].mHasNorMap) {
+				// Bump mapping need to change space (world and TBN)
+				// mTangentBuffer calculated by ComputeTangent() when normal texture has set
+				glGenBuffers(1, &Mines[i].mVboTangents);
+				glBindBuffer(GL_ARRAY_BUFFER, Mines[i].mVboTangents);
+				glBufferData(GL_ARRAY_BUFFER,static_cast<GLsizeiptr>(Mines[i].mTangentBuffer.size()	* sizeof(vec3)),&(Mines[i].mTangentBuffer.at(0)), GL_STATIC_DRAW);
+				offset = 0;
+				stride = sizeof(vec3);
+				glEnableVertexAttribArray(V_ATTRIB_TANGENT);
+				glVertexAttribPointer(V_ATTRIB_TANGENT, 3, GL_FLOAT, GL_FALSE,
+						stride, reinterpret_cast<GLvoid *>(offset));
+				glActiveTexture(GL_TEXTURE0 + TEX_POS_NORMAL);
+				glBindTexture(GL_TEXTURE_2D, Mines[i].mTexNorId);
+			}
+	}
+}
+void BasicRenderer::RebindVbo() const
+{
+	LOGI("BasicRenderer::RebindVbo\n");
+	glBindBuffer(GL_ARRAY_BUFFER, mVboVertices);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mVboIndices);
+	int stride = sizeof(VertexStruct); // stride: sizeof(float) * number of components
+	int offset = 0;
+	glEnableVertexAttribArray(V_ATTRIB_POSITION);
+	glVertexAttribPointer(V_ATTRIB_POSITION, 3, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<GLvoid *>(offset));
+	offset += sizeof(vec3);
+	glEnableVertexAttribArray(V_ATTRIB_NORMAL);
+	glVertexAttribPointer(V_ATTRIB_NORMAL, 3, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<GLvoid *>(offset));
+	// If renderer has texture, we should enable vertex attribute for texCoord
+	if (mHasTexture || mHasNorMap)
+	{
+		offset += sizeof(vec3);
+		glEnableVertexAttribArray(V_ATTRIB_TEX);
+		glVertexAttribPointer(V_ATTRIB_TEX, 2, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<GLvoid *>(offset));
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, mTexId);
+	}
+	if (mHasNorMap)
+	{
+		// Bump mapping need to change space (world and TBN)
+		// mTangentBuffer calculated by ComputeTangent() when normal texture has set
+		glBindBuffer(GL_ARRAY_BUFFER, mVboTangents);
+
+		offset = 0;
+		stride = sizeof(vec3);
+		glEnableVertexAttribArray(V_ATTRIB_TANGENT);
+		glVertexAttribPointer(V_ATTRIB_TANGENT, 3, GL_FLOAT, GL_FALSE, stride, reinterpret_cast<GLvoid *>(offset));
+
+		glActiveTexture(GL_TEXTURE0 + TEX_POS_NORMAL);
+		glBindTexture(GL_TEXTURE_2D, mTexNorId);
+	}
+}
+mat4 BasicRenderer::GetInverseTranspose(const mat4& m) const
+{
+	return transpose(inverse(m));
+
+}
+void BasicRenderer::PassUniform(int i) const {
+	mat4 worldMat;
+	if (i == 0)	worldMat = GetWorldMatrix();
+	else if (i == 1) worldMat = GetWorldMatrix2();
+	else if (i == 2) worldMat = GetWorldMatrix3();
+	else if (i == 3) worldMat = GetWorldMatrix4(i);
+	else if(i == 4) worldMat = GetWorldMatrixRand5(i);
+	else if(i == 5) worldMat = GetWorldMatrixRand6(i);
+	else if(i == 6) worldMat = GetWorldMatrixRand7(i);
+	else if(i == 7) worldMat = GetWorldMatrixRand8(i);
+	else if(i == 8) worldMat = GetWorldMatrixRand9(i);
+	else if(i == 9) worldMat = GetWorldMatrixRand10(i);
+	mat4 viewMat = mCamera->GetViewMat();
+	mat4 projMat = mCamera->GetPerspectiveMat();
+	mat4 invTransWorldMat = GetInverseTranspose(worldMat);
+	Mines[i].mShader->SetUniform("worldMat", worldMat);
+	Mines[i].mShader->SetUniform("viewMat", viewMat);
+	Mines[i].mShader->SetUniform("projMat", projMat);
+	Mines[i].mShader->SetUniform("invTransWorldMat", invTransWorldMat);
+	Mines[i].mShader->SetUniform("s_tex0", 0);
+	Mines[i].mShader->SetUniform("s_texNor", TEX_POS_NORMAL);
+	Mines[i].mShader->SetUniform("s_texCube", TEX_POS_CUBEMAP);
+	Mines[i].mShader->SetUniform("eyePos", mCamera->GetEye());
+	Mines[i].mShader->SetUniform("lightPos", vec3(100.0f, 100.0f, 100.0f));
+	Mines[i].mShader->SetUniform("materialDiff", vec3(0.8f, 1.0f, 0.7f));
+	Mines[i].mShader->SetUniform("materialSpec", vec3(0.8f, 1.0f, 0.7f));
+	Mines[i].mShader->SetUniform("materialAmbi", vec3(0.0f, 0.0f, 0.0f));
+	Mines[i].mShader->SetUniform("materialEmit", vec3(0.0f, 0.0f, 0.0f));
+	Mines[i].mShader->SetUniform("materialSh", 100.0f);
+	Mines[i].mShader->SetUniform("sourceDiff", vec3(0.7f, 0.7f, 0.7f));
+	Mines[i].mShader->SetUniform("sourceSpec", vec3(1.0f, 1.0f, 1.0f));
+	Mines[i].mShader->SetUniform("sourceAmbi", vec3(0.0f, 0.0f, 0.0f));
+}
+void BasicRenderer::Draw(int i) const {
+	glDrawElements(GL_TRIANGLES,
+			static_cast<GLsizei>(Mines[i].mIndexBuffer.size()),
+			GL_UNSIGNED_SHORT, static_cast<GLvoid *>(NULL));
+
+}
+/*****************************
+ ***** Utility functions *****
+ *****************************/
+void BasicRenderer::LogInfo() const
+{
+	print_gl_string("Version", GL_VERSION);
+	print_gl_string("Vendor", GL_VENDOR);
+	print_gl_string("Renderer", GL_RENDERER);
+	print_gl_string("Extensions", GL_EXTENSIONS);
+	print_gl_string("GLSLversion", GL_SHADING_LANGUAGE_VERSION);
+}
+void BasicRenderer::CountTickInit() const
+{
+	mTimer->InitTimer();
+}
+void BasicRenderer::ComputeTick()
+{
+	static double lastTick = 0;
+	double currTick = mTimer->GetElapsedTime();
+	mDeltaTime = currTick - lastTick;
+	lastTick = currTick;
+	//LOGI("Tick: %f\n", mDeltaTime);
+}
+/// Computes Tangent vector by using position and texCoord
+//  These vectors will be used for making TBN rotation matrix
+void BasicRenderer::ComputeTangent()
+{
+	vector<vec3> triTangents;
+	int j = 0;
+	for(j = 0;j < 10; j++){
+		for (unsigned int i = 0; i < Mines[j].mIndexBuffer.size(); i += 3) {
+				vec3 p0 = Mines[j].mVertexBuffer.at(Mines[j].mIndexBuffer.at(i)).pos;
+				vec3 p1 = Mines[j].mVertexBuffer.at(Mines[j].mIndexBuffer.at(i + 1)).pos;
+				vec3 p2 = Mines[j].mVertexBuffer.at(Mines[j].mIndexBuffer.at(i + 2)).pos;
+				vec3 uv0 = vec3(Mines[j].mVertexBuffer.at(Mines[j].mIndexBuffer.at(i)).tex, 0);
+				vec3 uv1 = vec3(Mines[j].mVertexBuffer.at(Mines[j].mIndexBuffer.at(i + 1)).tex,0);
+				vec3 uv2 = vec3(Mines[j].mVertexBuffer.at(Mines[j].mIndexBuffer.at(i + 2)).tex,0);
+				vec3 deltaPos1 = p1 - p0;
+				vec3 deltaPos2 = p2 - p0;
+				vec3 deltaUV1 = uv1 - uv0;
+				vec3 deltaUV2 = uv2 - uv0;
+				// Compute the tangent
+				float r = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
+				vec3 computedTangent = (deltaPos1 * deltaUV2.y - deltaPos2 * deltaUV1.y)* r;
+				triTangents.push_back(computedTangent);
+				triTangents.push_back(computedTangent);
+				triTangents.push_back(computedTangent);
+			}
+			// Initialize mTangents
+			for (int i = 0; i < Mines[j].mVertexBuffer.size(); ++i)
+				Mines[j].mTangentBuffer.push_back(vec3(0));
+				// Accumulate tangents by indices
+			for (unsigned int i = 0; i < Mines[j].mIndexBuffer.size(); ++i)
+				Mines[j].mTangentBuffer.at(Mines[j].mIndexBuffer.at(i)) =Mines[j].mTangentBuffer.at(Mines[j].mIndexBuffer.at(i))+ triTangents.at(i);
+	}
+}
+void BasicRenderer::ImportModelScale(char* objSource, BasicRenderer* renderer,const float& scale, int i) const {
+	vec3 sVec = vec3(scale);
+	vector<vec3> posCoords;
+	vector<vec3> norCoords;
+	vector<vec2> texCoords;
+	vector < string > strIndexer;
+	float x, y, z;
+	char *line, *linePtr;
+	line = util_strtok(objSource, "\r\n", &linePtr);
+	while (line) {
+		char *word, *wordPtr;
+		word = util_strtok(line, " ", &wordPtr);
+		switch (word[0]) {
+		case 'v':
+			switch (word[1]) {
+			case 'n': //normal coordinate
+				word = util_strtok(NULL, " ", &wordPtr);
+				x = static_cast<float>(atof(word));
+				word = util_strtok(NULL, " ", &wordPtr);
+				y = static_cast<float>(atof(word));
+				word = util_strtok(NULL, " ", &wordPtr);
+				z = static_cast<float>(atof(word));
+				norCoords.push_back(vec3(x, y, z));
+				break;
+			case 't': //texture coordinate
+				word = util_strtok(NULL, " ", &wordPtr);
+				x = static_cast<float>(atof(word));
+				word = util_strtok(NULL, " ", &wordPtr);
+				y = static_cast<float>(atof(word));
+				texCoords.push_back(vec2(x, y));
+				break;
+			default: //vertex position
+				word = util_strtok(NULL, " ", &wordPtr);
+				x = static_cast<float>(atof(word));
+				word = util_strtok(NULL, " ", &wordPtr);
+				y = static_cast<float>(atof(word));
+				word = util_strtok(NULL, " ", &wordPtr);
+				z = static_cast<float>(atof(word));
+				posCoords.push_back(sVec * vec3(x, y, z));
+				break;
+			}
+			break;
+		case 'f':
+			while ((word = util_strtok(NULL, " ", &wordPtr))) {
+				string face = word;
+				vector<string>::iterator findIter = find(strIndexer.begin(),
+						strIndexer.end(), word);
+
+				if (findIter != strIndexer.end()) {
+					// this face already in vertex data
+					renderer->Mines[i].mIndexBuffer.push_back(
+							std::distance(strIndexer.begin(), findIter));
+				} else {
+					unsigned short face_index =
+							static_cast<unsigned short>(strIndexer.size());
+					renderer->Mines[i].mIndexBuffer.push_back(face_index);
+					strIndexer.push_back(face);
+
+					VertexStruct newVertex;
+					char *num, *numPtr;
+					num = util_strtok(word, "/", &numPtr); // position index
+					newVertex.pos = posCoords.at(atoi(num) - 1);
+					num = util_strtok(NULL, "/", &numPtr); // texture index
+					newVertex.tex = texCoords.at(atoi(num) - 1);
+					num = util_strtok(NULL, "/", &numPtr); // normal index
+					newVertex.nor = norCoords.at(atoi(num) - 1);
+					LOGI("yes done");
+					renderer->Mines[i].mVertexBuffer.push_back(newVertex);
+				}
+			}
+			break;
+		case 'g':
+			LOGI("name : %s\n", util_strtok(NULL, " ", &wordPtr));
+			break;
+		default:
+			break;
+		}
+		line = util_strtok(NULL, "\r\n", &linePtr);
+	}
+}
+vec3 BasicRenderer::GetArcballVector(const vec3& point) const{
+	const float RADIUS = 1.0;
+	vec3 P = vec3(1.0 * point.x / mWidth * 2 - 1.0,1.0 * point.y / mHeight * 2 - 1.0,0);
+	P.y = -P.y;
+	float OP_squared = P.x * P.x + P.y * P.y;
+	if (OP_squared <= RADIUS * RADIUS)P.z = sqrt(RADIUS * RADIUS - OP_squared); // Pythagore
+	else P = glm::normalize(P); // nearest point
+	return P;
+}
+
+mat4 BasicRenderer::GetWorldMatrix2() const {
+
+
+	mat4 rotationMat = mat4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 200, 250, 0, 1);
+	return rotationMat;
+}
+
+mat4 BasicRenderer::GetWorldMatrix3() const {
+
+	mat4 rotationMat = mat4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -200, -250, 0,1);
+	return rotationMat;
+}
+static int x_dir[11], y_dir[11];
+static float x_position[11] , y_position[11];
+static float x_velocity[11] , y_velocity[11] ;
+static int my_rands[11] ={0,};
+static int my_numbers[11] ={0,};
+
+static float g_x[11] ={0,};
+static float g_y[11] ={0,};
+
+mat4 BasicRenderer::GetWorldMatrix4(int i) const {
+
+	if(my_rands[i] % 100 == 0 ){
+		x_dir[i] = rand()%2 + 1, y_dir[i] = rand()%2 + 1;
+		}
+		my_rands[i]++;
+		if (fabs(x_velocity[i] * (1 - 0.05)) >= 0) x_velocity[i] *= (1 - 0.05);////////////////////////가속도를 줄인다.
+		else x_velocity[i] = 0;
+		if (fabs(y_velocity[i] * (1 - 0.05)) >= 0) y_velocity[i] *= (1 - 0.05);
+		else y_velocity[i] = 0;
+
+		if ((Object_Positions[i].x - x_velocity[i]) <= 360&& (Object_Positions[i].x- x_velocity[i]) >= -360){
+			if(x_dir[i] == 1){
+				x_velocity[i] +=0.3 ;
+			}
+			else if(x_dir[i] == 2){
+				x_velocity[i] -=0.3 ;
+			}
+		}
+		else x_velocity[i] = -x_velocity[i] * 1.1;
+		if ((Object_Positions[i].y - y_velocity[i]) <= 580&& (Object_Positions[i].y - y_velocity[i]) >= -580){
+			if(y_dir[i] == 1){
+				y_velocity[i] +=0.3 ;
+			}
+			else if(x_dir[i] == 2){
+				y_velocity[i] -=0.3 ;
+			}
+		}
+		else y_velocity[i] = -y_velocity[i] * 1.1;
+
+		Object_Positions[i].x = Object_Positions[i].x - x_velocity[i];
+		Object_Positions[i].y = Object_Positions[i].y - y_velocity[i];
+
+
+		mat4 rotationMat = mat4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, Object_Positions[i].x,Object_Positions[i].y, 0, 1);
+		return rotationMat;
+	}
+mat4 BasicRenderer::GetWorldMatrixRand5(int i) const {
+
+	if(my_rands[i] % 100 == 0 ){
+	x_dir[i] = rand()%2 + 1, y_dir[i] = rand()%2 + 1;
+	}
+	my_rands[i]++;
+	if (fabs(x_velocity[i] * (1 - 0.05)) >= 0) x_velocity[i] *= (1 - 0.05);////////////////////////가속도를 줄인다.
+	else x_velocity[i] = 0;
+	if (fabs(y_velocity[i] * (1 - 0.05)) >= 0) y_velocity[i] *= (1 - 0.05);
+	else y_velocity[i] = 0;
+
+	if ((Object_Positions[i].x - x_velocity[i]) <= 360&& (Object_Positions[i].x- x_velocity[i]) >= -360){
+		if(x_dir[i] == 1){
+			x_velocity[i] +=0.1 ;
+		}
+		else if(x_dir[i] == 2){
+			x_velocity[i] -=0.1 ;
+		}
+	}
+	else x_velocity[i] = -x_velocity[i] * 1.1;
+	if ((Object_Positions[i].y - y_velocity[i]) <= 580&& (Object_Positions[i].y - y_velocity[i]) >= -580){
+		if(y_dir[i] == 1){
+			y_velocity[i] +=0.1 ;
+		}
+		else if(x_dir[i] == 2){
+			y_velocity[i] -=0.1 ;
+		}
+	}
+	else y_velocity[i] = -y_velocity[i] * 1.1;
+
+	Object_Positions[i].x = Object_Positions[i].x - x_velocity[i];
+	Object_Positions[i].y = Object_Positions[i].y - y_velocity[i];
+
+	float xx = Object_Positions[i].x;
+	float yy = Object_Positions[i].y;
+	float xxx =x_velocity[i] ;
+	float yyy =  y_velocity[i];
+	float g_x;
+	float g_y;
+
+	Collision(&xx , &yy,&xxx,  &yyy,&g_x, &g_y, 0);
+
+	mat4 rotationMat = mat4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, Object_Positions[i].x,Object_Positions[i].y, 0, 1);
+	return rotationMat;
+}
+mat4 BasicRenderer::GetWorldMatrixRand6(int i) const {
+
+	if(my_rands[i] % 100 == 0 ){
+	x_dir[i] = rand()%2 + 1, y_dir[i] = rand()%2 + 1;
+	}
+	my_rands[i]++;
+	if (fabs(x_velocity[i] * (1 - 0.05)) >= 0) x_velocity[i] *= (1 - 0.05);////////////////////////가속도를 줄인다.
+	else x_velocity[i] = 0;
+	if (fabs(y_velocity[i] * (1 - 0.05)) >= 0) y_velocity[i] *= (1 - 0.05);
+	else y_velocity[i] = 0;
+
+	if ((Object_Positions[i].x - x_velocity[i]) <= 360&& (Object_Positions[i].x- x_velocity[i]) >= -360){
+		if(x_dir[i] == 1){
+			x_velocity[i] +=0.1 ;
+		}
+		else if(x_dir[i] == 2){
+			x_velocity[i] -=0.1 ;
+		}
+	}
+	else x_velocity[i] = -x_velocity[i] * 1.1;
+	if ((Object_Positions[i].y - y_velocity[i]) <= 580&& (Object_Positions[i].y - y_velocity[i]) >= -580){
+		if(y_dir[i] == 1){
+			y_velocity[i] +=0.1 ;
+		}
+		else if(x_dir[i] == 2){
+			y_velocity[i] -=0.1 ;
+		}
+	}
+	else y_velocity[i] = -y_velocity[i] * 1.1;
+
+	Object_Positions[i].x = Object_Positions[i].x - x_velocity[i];
+	Object_Positions[i].y = Object_Positions[i].y - y_velocity[i];
+	float xx = Object_Positions[i].x;
+	float yy = Object_Positions[i].y;
+	float xxx =x_velocity[i] ;
+	float yyy =  y_velocity[i];
+	float g_x;
+	float g_y;
+
+	Collision(&xx , &yy,&xxx,  &yyy,&g_x, &g_y, 0);
+
+
+	mat4 rotationMat = mat4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, Object_Positions[i].x,Object_Positions[i].y, 0, 1);
+	return rotationMat;
+}
+mat4 BasicRenderer::GetWorldMatrixRand7(int i) const {
+
+	if(my_rands[i] % 100 == 0 ){
+	x_dir[i] = rand()%2 + 1, y_dir[i] = rand()%2 + 1;
+	}
+	my_rands[i]++;
+	if (fabs(x_velocity[i] * (1 - 0.05)) >= 0) x_velocity[i] *= (1 - 0.05);////////////////////////가속도를 줄인다.
+	else x_velocity[i] = 0;
+	if (fabs(y_velocity[i] * (1 - 0.05)) >= 0) y_velocity[i] *= (1 - 0.05);
+	else y_velocity[i] = 0;
+
+	if ((Object_Positions[i].x - x_velocity[i]) <= 360&& (Object_Positions[i].x- x_velocity[i]) >= -360){
+		if(x_dir[i] == 1){
+			x_velocity[i] +=0.1 ;
+		}
+		else if(x_dir[i] == 2){
+			x_velocity[i] -=0.1 ;
+		}
+	}
+	else x_velocity[i] = -x_velocity[i] * 1.1;
+	if ((Object_Positions[i].y - y_velocity[i]) <= 580&& (Object_Positions[i].y - y_velocity[i]) >= -580){
+		if(y_dir[i] == 1){
+			y_velocity[i] +=0.1 ;
+		}
+		else if(x_dir[i] == 2){
+			y_velocity[i] -=0.1 ;
+		}
+	}
+	else y_velocity[i] = -y_velocity[i] *1.1;
+
+	Object_Positions[i].x = Object_Positions[i].x - x_velocity[i];
+	Object_Positions[i].y = Object_Positions[i].y - y_velocity[i];
+
+	float xx = Object_Positions[i].x;
+	float yy = Object_Positions[i].y;
+	float xxx =x_velocity[i] ;
+	float yyy =  y_velocity[i];
+	float g_x;
+	float g_y;
+
+	Collision(&xx , &yy,&xxx,  &yyy,&g_x, &g_y, 0);
+
+	mat4 rotationMat = mat4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, Object_Positions[i].x,Object_Positions[i].y, 0, 1);
+	return rotationMat;
+}
+mat4 BasicRenderer::GetWorldMatrixRand8(int i) const {
+
+	if(my_rands[i] % 100 == 0 ){
+	x_dir[i] = rand()%2 + 1, y_dir[i] = rand()%2 + 1;
+	}
+	my_rands[i]++;
+	if (fabs(x_velocity[i] * (1 - 0.05)) >= 0) x_velocity[i] *= (1 - 0.05);////////////////////////가속도를 줄인다.
+	else x_velocity[i] = 0;
+	if (fabs(y_velocity[i] * (1 - 0.05)) >= 0) y_velocity[i] *= (1 - 0.05);
+	else y_velocity[i] = 0;
+
+	if ((Object_Positions[i].x - x_velocity[i]) <= 360&& (Object_Positions[i].x- x_velocity[i]) >= -360){
+		if(x_dir[i] == 1){
+			x_velocity[i] +=0.1 ;
+		}
+		else if(x_dir[i] == 2){
+			x_velocity[i] -=0.1 ;
+		}
+	}
+	else x_velocity[i] = -x_velocity[i] * 1.1;
+	if ((Object_Positions[i].y - y_velocity[i]) <= 580&& (Object_Positions[i].y - y_velocity[i]) >= -580){
+		if(y_dir[i] == 1){
+			y_velocity[i] +=0.1 ;
+		}
+		else if(x_dir[i] == 2){
+			y_velocity[i] -=0.1 ;
+		}
+	}
+	else y_velocity[i] = -y_velocity[i] * 1.1;
+
+	Object_Positions[i].x = Object_Positions[i].x - x_velocity[i];
+	Object_Positions[i].y = Object_Positions[i].y - y_velocity[i];
+
+	float xx = Object_Positions[i].x;
+	float yy = Object_Positions[i].y;
+	float xxx =x_velocity[i] ;
+	float yyy =  y_velocity[i];
+	float g_x;
+	float g_y;
+
+	Collision(&xx , &yy,&xxx,  &yyy,&g_x, &g_y, 0);
+
+
+	mat4 rotationMat = mat4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, Object_Positions[i].x,Object_Positions[i].y, 0, 1);
+	return rotationMat;
+}
+mat4 BasicRenderer::GetWorldMatrixRand9(int i) const {
+
+	if(my_rands[i] % 100 == 0 ){
+	x_dir[i] = rand()%2 + 1, y_dir[i] = rand()%2 + 1;
+	}
+	my_rands[i]++;
+	if (fabs(x_velocity[i] * (1 - 0.05)) >= 0) x_velocity[i] *= (1 - 0.05);////////////////////////가속도를 줄인다.
+	else x_velocity[i] = 0;
+	if (fabs(y_velocity[i] * (1 - 0.05)) >= 0) y_velocity[i] *= (1 - 0.05);
+	else y_velocity[i] = 0;
+
+	if ((Object_Positions[i].x - x_velocity[i]) <= 360&& (Object_Positions[i].x- x_velocity[i]) >= -360){
+		if(x_dir[i] == 1){
+			x_velocity[i] +=0.1 ;
+		}
+		else if(x_dir[i] == 2){
+			x_velocity[i] -=0.1 ;
+		}
+	}
+	else x_velocity[i] = -x_velocity[i] * 1.1;
+	if ((Object_Positions[i].y - y_velocity[i]) <= 580&& (Object_Positions[i].y - y_velocity[i]) >= -580){
+		if(y_dir[i] == 1){
+			y_velocity[i] +=0.1 ;
+		}
+		else if(x_dir[i] == 2){
+			y_velocity[i] -=0.1 ;
+		}
+	}
+	else y_velocity[i] = -y_velocity[i] * 1.1;
+
+	Object_Positions[i].x = Object_Positions[i].x - x_velocity[i];
+	Object_Positions[i].y = Object_Positions[i].y - y_velocity[i];
+	float xx = Object_Positions[i].x;
+	float yy = Object_Positions[i].y;
+	float xxx =x_velocity[i] ;
+	float yyy =  y_velocity[i];
+	float g_x;
+	float g_y;
+
+	Collision(&xx , &yy,&xxx,  &yyy,&g_x, &g_y, 0);
+
+
+	mat4 rotationMat = mat4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, Object_Positions[i].x,Object_Positions[i].y, 0, 1);
+	return rotationMat;
+}
+mat4 BasicRenderer::GetWorldMatrixRand10(int i) const {
+
+
+	Object_Positions[i].x = 1000,Object_Positions[i].y = 1000;
+
+	mat4 rotationMat = mat4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0,0, 0, 1);
+	return rotationMat;
+}
+
+mat4 BasicRenderer::GetWorldMatrix() const{
+	static quat startRotQuat = quat_cast(mat3(1));
+	static quat lastRotQuat = startRotQuat;
+	static vec3 ancPts = Mines[0].mTouchPoint;
+	static bool isUpdateAnc = false;
+	static float p_x;
+	static float p_y;
+	static float p_z;
+	static vec3 tempPts;
+	static quat tempQuat;
+	static float tempAngle;
+	static int rate = 0;
+	tempPts = Mines[0].mTouchPoint;////////////////////업데이트된 포인트
+	if (!mIsTouchOn){
+		if (!isUpdateAnc){
+			ancPts = Mines[0].mTouchPoint;
+			isUpdateAnc = true;
+			LOGI("Anchor Updated\n");
+		}
+		else{
+			if (ancPts.x != mTouchPoint.x || ancPts.y != mTouchPoint.y|| ancPts.z != mTouchPoint.z){
+				if (fabs(velocity_x * (1 - 0.05)) >= 0) velocity_x *= (1 - 0.05);////////////////////////가속도를 줄인다.
+				else velocity_x = 0;
+				if (fabs(velocity_y * (1 - 0.05)) >= 0) velocity_y *= (1 - 0.05);
+				else velocity_y = 0;
+				if (fabs(velocity_z * (1 - 0.05)) >= 0) velocity_z *= (1 - 0.05);
+				else velocity_z = 0;
+
+				////////////////////////벽에 부딪힐 때 생기는 것들
+				if ((position_x - velocity_x) <= 360&& (position_x - velocity_x) >= -360)
+				velocity_x += (Mines[0].mTouchPoint.x - 360) / (-36.0 * 5);
+				else velocity_x = -velocity_x * 1.1;
+				if ((position_y - velocity_y) <= 580&& (position_y - velocity_y) >= -580) velocity_y += (Mines[0].mTouchPoint.y - 565) / (56.5 * 5);
+				else velocity_y = -velocity_y * 1.1;
+				if ((position_z - velocity_z) >5&& (position_z - velocity_z) <= 800) velocity_z += (Mines[0].mTouchPoint.z - 360) / (-36.0 * 5);
+				else if(position_z - velocity_z >0)velocity_z = -velocity_z * 1.1;
+
+				////////////////////////////////////////장애물을 만났을 때 충돌 효과
+				p_x = (position_x - velocity_x);
+				p_y = (position_y - velocity_y);
+				p_z = (position_z - velocity_z);
+				LOGI("bat%f", Mines[0].mTouchPoint.z);
+
+				//Collision(&position_x, &position_y,&velocity_x, &velocity_y,&p_x, &p_y);
+				Bollision(position_x, position_y,position_z,velocity_x, velocity_y,velocity_z,p_x, p_y,p_z, 1);
+				Bollision(position_x, position_y,position_z,velocity_x, velocity_y,velocity_z,p_x, p_y,p_z, 2);
+				Bollision(position_x, position_y,position_z,velocity_x, velocity_y,velocity_z,p_x, p_y,p_z, 4);
+				Bollision(position_x, position_y,position_z,velocity_x, velocity_y,velocity_z,p_x, p_y,p_z, 5);
+				Bollision(position_x, position_y,position_z,velocity_x, velocity_y,velocity_z,p_x, p_y,p_z, 6);
+				Bollision(position_x, position_y,position_z,velocity_x, velocity_y,velocity_z,p_x, p_y,p_z, 7);
+				Bollision(position_x, position_y,position_z,velocity_x, velocity_y,velocity_z,p_x, p_y,p_z, 8);
+				Bollision(position_x, position_y,position_z,velocity_x, velocity_y,velocity_z,p_x, p_y,p_z, 9);
+
+				}
+			}
+		}
+	else
+	{
+		startRotQuat = lastRotQuat;isUpdateAnc = false;
+	}
+	position_x = (p_x);
+	position_y = (p_y);
+	position_z = (p_z);
+
+	p_x = (position_x - tempPts.x);
+	p_y = (position_y - tempPts.y);
+	/////////움직인 만큼의 각도 구하기
+	if(p_x >=0){
+		if(p_y>=0)tempAngle = sqrt(p_x*p_x + p_y*p_y)/15;///////////xxx라디안 값
+		else if(p_y<0)tempAngle = sqrt(p_x*p_x + p_y*p_y)/15;///////////xxx라디안 값
+	}
+	else if(p_x< 0){
+		if(p_y>=0)tempAngle = -sqrt(p_x*p_x + p_y*p_y)/10;///////////xxx라디안 값
+		else if(p_y<0)tempAngle = -sqrt(p_x*p_x + p_y*p_y)/15;///////////xxx라디안 값
+	}
+	vec3 va = GetArcballVector(ancPts);
+	vec3 vb = GetArcballVector(Mines[0].mTouchPoint);
+	// Get the rotation axis and the angle between the vector
+	vec3 axisInCameraSpace = normalize(cross(va, vb));
+		////////////////////////////제한범위가 작을때는 고정이고 이 경우가 아니면 움직인다
+	if(fabs(p_x) >0.2 && fabs(p_y)>0.2){
+	axisInCameraSpace.x = p_x;
+	axisInCameraSpace.y = p_y;
+	axisInCameraSpace.z = 0.0;
+	}
+	else {
+	axisInCameraSpace.x = 0;
+	axisInCameraSpace.y = 0;
+	axisInCameraSpace.z = 0.0;
+	}
+	mat4 cameraToObjectSpace = inverse(GetCamera()->GetViewMat());
+	vec3 axisInObjectSpace = normalize(mat3(cameraToObjectSpace) * axisInCameraSpace);
+	////////////////////////////rate를 두어 공의 회전이 너무 빠르게 돌지 않도록 한다.
+	if(rate == 0)
+		tempQuat = angleAxis(tempAngle, axisInObjectSpace);
+	if(rate % 5== 0)
+		if(fabs(p_x) >2&& fabs(p_y)> 2){
+		tempQuat = angleAxis(tempAngle, axisInObjectSpace);
+	}
+	rate++;
+	LOGI("wow!%d %lf %d", Mines[0].mIndexBuffer.size(), p_x, rate);
+	LOGI("my_position_x (%f) my_position_y (%f)\n", position_x, position_y);
+	//////////////////FINISH LINE
+	if(Bollision(position_x, position_y,position_z,velocity_x, velocity_y,velocity_z,p_x, p_y, p_z,3)){
+		evas_object_show(POPUP);
+		gameWin = true;
+		//evas_object_show(button);
+
+
+		position_x = -200;
+		position_y = 400;
+		position_z = 0;
+
+	}
+
+	LOGI("wack %f %f %f", position_x, position_y, position_z);
+	if(rate == 1){
+		position_x = -100;
+		position_y = 500;
+	}
+	mat4 rotationMat = mat4(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, position_x,
+	position_y,0, 1) * mat4_cast(tempQuat);
+	ancPts = Mines[0].mTouchPoint;
+	return rotationMat;
+}
+void BasicRenderer::Collision(float* a_x,float* a_y,float* v_x,float* v_y,float* temp_x, float* temp_y, int i) const{
+		if(sqrt((*a_x-position_x*(*a_x-position_x)+
+								(*a_y-position_y)*(*a_y-position_y))<=40)){
+							if(*a_x < position_x){
+								if(*a_y < position_y){
+									(*a_x) -=1;
+									(*a_y) -=1;
+									(*v_x)*=-1.1;
+									(*v_y)*=-1.1;
+								}
+								else{
+									(*a_x) -=1;
+									(*a_y) +=1;
+									(*v_x)*=-1.1;
+									(*v_y)*=-1.1;
+								}
+							}
+							else{
+								if(*a_y < position_y){
+									(*a_x) +=1;
+									(*a_y) -=1;
+									(*v_x)*=-1.1;
+									(*v_y)*=-1.1;
+							}
+								else{
+									(*a_x) +=1;
+									(*a_y) +=1;
+									(*v_x)*=-1.1;
+									(*v_y)*=-1.1;
+							}
+
+							}
+							return ;
+						}
+		return ;
+}
+
+int BasicRenderer::Bollision(float& a_x,float& a_y,float& a_z,float& v_x,float& v_y,float& v_z,float& temp_x, float& temp_y,float& temp_z, int num) const{
+
+	int size =  42;
+	if(num == 4){
+		size-=25;
+	}
+
+
+	if(sqrt((a_x-Object_Positions[num].x)*(a_x-Object_Positions[num].x)+
+							(a_y-Object_Positions[num].y)*(a_y-Object_Positions[num].y))<=size){
+						if(a_x < Object_Positions[num].x){
+							if(a_y < Object_Positions[num].y){
+								(a_x) -=1;
+								(a_y) -=1;
+								(v_x)*=-1.1;
+								(v_y)*=-1.1;
+								(a_z) +=0.1;
+								(v_z)*=-1.1;
+
+							}
+							else{
+								(a_x) -=1;
+								(a_y) +=1;
+								(v_x)*=-1.1;
+								(v_y)*=-1.1;
+								(a_z) +=0.1;
+								(v_z)*=-1.1;
+
+							}
+						}
+						else{
+							if(a_y < Object_Positions[num].y){
+								(a_x) +=1;
+								(a_y) -=1;
+								(v_x)*=-1.1;
+								(v_y)*=-1.1;
+								(a_z) +=0.3;
+								(v_z)*=-1.1;
+
+						}
+							else{
+								(a_x) +=1;
+								(a_y) +=1;
+								(v_x)*=-1.1;
+								(v_y)*=-1.1;
+								(a_z) +=0.3;
+								(v_z)*=-1.1;
+
+						}
+
+						}
+						temp_x = (a_x);
+						temp_y = (a_y);
+						temp_z = (a_z);
+
+						return 1;
+					}
+	return 0;
+
+}
+//evas_object_show(button);
+
+

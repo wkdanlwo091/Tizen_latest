@@ -1,0 +1,36 @@
+#include "sample/normal_mapping_view.h"
+
+#include "basic/basic_file_loader.h"
+
+using namespace std;
+
+void NormalMappingView::OnInit() {
+	string vs = FileLoader::GetInstance()->ReadTxtFile(
+					"shader/view_nor/nor.vs");
+			string fs = FileLoader::GetInstance()->ReadTxtFile(
+					"shader/view_nor/nor.fs");
+			mViewRenderer->SetProgram(vs, fs);
+
+			string ball = FileLoader::GetInstance()->ReadTxtFile("obj3d/sphere3");
+
+
+			TexData ball_tex, ball_normal_tex;
+			FileLoader::GetInstance()->ReadTexture("tex/soccer.jpg", ball_tex);
+			FileLoader::GetInstance()->ReadTexture("tex/plain.jpg", ball_normal_tex);
+
+			float scale = 30.0f;
+			mViewRenderer->SetNewModel(ball, scale);
+			mViewRenderer->SetTexture(TEXDATA_GENERAL, &ball_tex);
+			mViewRenderer->SetTexture(TEXDATA_NORMAL_MAP, &ball_normal_tex);
+
+			mViewRenderer->Initialize();
+			glClearColor(0.5f, 0.5f, 0.1f, 0.0f);
+
+			mViewRenderer->GetCamera()->SetEye(0, 0, 2000);
+			mViewRenderer->GetCamera()->SetAt(0, 0, 0);
+}
+
+void NormalMappingView::OnStep() {
+	mViewRenderer->RenderFrame();
+}
+

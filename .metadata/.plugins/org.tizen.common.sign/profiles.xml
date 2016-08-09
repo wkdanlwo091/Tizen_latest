@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<profiles version="3.0">
+<profile name="jang">
+<profileitem ca="" distributor="0" key="C:\tizen-sdk-data\keystore\jang\author.p12" password="XXJ+JCnScdM=" rootca=""/>
+<profileitem ca="" distributor="1" key="C:\tizen-sdk-data\keystore\jang\distributor.p12" password="WSxMDLQY0RmA9r6mULV8Nw==" rootca=""/>
+</profile>
+<profile name="jmj">
+<profileitem ca="" distributor="0" key="C:\tizen-sdk-data\keystore\jmj\author.p12" password="XXJ+JCnScdM=" rootca=""/>
+<profileitem ca="" distributor="1" key="C:\tizen-sdk-data\keystore\jmj\distributor.p12" password="XXJ+JCnScdM=" rootca=""/>
+</profile>
+</profiles>
